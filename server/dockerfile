@@ -1,0 +1,27 @@
+# Etapa de build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+# Copia o arquivo de projeto correto
+COPY ["server/server.csproj", "server/"]
+RUN dotnet restore "server/server.csproj"
+
+# Copia o restante do código
+COPY server/. ./server/
+WORKDIR /src/server
+
+# Publica em modo Release
+RUN dotnet publish -c Release -o /app/publish
+
+# Etapa de runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:80
+ENV DOTNET_Logging__Console__DisableColors=false
+
+COPY --from=build /app/publish ./
+
+EXPOSE 80
+
+ENTRYPOINT ["dotnet", "server.dll"]
